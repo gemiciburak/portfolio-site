@@ -1,0 +1,136 @@
+# Production yığını — tek sunucu (ör. Google Cloud Compute Engine) +
+# Nginx ters proxy + Let's Encrypt HTTPS.
+#
+# Geliştirme docker-compose.yml'den farkları:
+#   • postgres, api ve web portları HOST'a AÇILMAZ; dışarıya yalnızca nginx bakar.
+#   • web imajı production URL'leriyle build edilir (NEXT_PUBLIC_* build anında gömülür).
+#   • TRUST_PROXY=1 — api bir ters proxy arkasında, gerçek istemci IP'si için.
+#
+# İLK kurulum:
+#   cp .env.example .env                 # sunucuda doldurun
+#   cp backend/.env.example backend/.env # JWT sırlarını üretin
+#   docker compose -f docker-compose.prod.yml build
+#   EMAIL="siz@ornek.com" ./nginx/init-letsencrypt.sh
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Güncelleme:
+#   git pull && docker compose -f docker-compose.prod.yml up -d --build
+#
+# Secret'lar repoda DEĞİL, sunucuda oluşturulan .env dosyalarından gelir.
+
+name: portfolio
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: portfolio-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    build:
+      context: ./backend
+      target: migrate
+    image: portfolio-api:migrate
+    container_name: portfolio-migrate
+    env_file: ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *default-logging
+    restart: "no"
+
+  api:
+    build:
+      context: ./backend
+      target: runner
+    image: portfolio-api:latest
+    container_name: portfolio-api
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      TRUST_PROXY: 1
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      CORS_ORIGINS: ${PUBLIC_ORIGIN}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    logging: *default-logging
+
+  web:
+    build:
+      context: ./frontend
+      target: runner
+      args:
+        # Tarayıcı API'ye aynı alan adı üzerinden, /api yolundan ulaşır.
+        NEXT_PUBLIC_API_URL: ${PUBLIC_ORIGIN}/api
+        API_URL: http://api:4000/api
+    image: portfolio-web:latest
+    container_name: portfolio-web
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:4000/api
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *default-logging
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: portfolio-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
+    depends_on:
+      - web
+      - api
+    logging: *default-logging
+    # Sertifika yenilendiğinde konfigürasyonu yeniden yükler.
+    command: >
+      sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: portfolio-certbot
+    restart: unless-stopped
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
+    logging: *default-logging
+    # 12 saatte bir yenileme dener; süresi dolmamışsa hiçbir şey yapmaz.
+    entrypoint: >
+      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done"
+
+volumes:
+  postgres_data:
+  certbot_conf:
+  certbot_www:
