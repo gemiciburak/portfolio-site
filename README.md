@@ -120,23 +120,36 @@ bazlı `errors` eklenir.
 
 ## Production dağıtımı
 
-Tek sunucu (ör. Google Cloud Compute Engine) + Nginx ters proxy + Let's Encrypt:
+Tek sunucu (Google Cloud Compute Engine), Docker Compose ile. 80/443'ü
+sunucudaki mevcut Nginx tutar; projeler `edge` adlı ortak ağda buluşur.
+
+```
+VPS
+nginx :443 ─┬─ pierre.burakgemici.com.tr → (ayrı proje)
+            └─ www.burakgemici.com.tr
+                 ├─ /      → portfolio-web  :3000
+                 └─ /api/  → portfolio-api  :4000
+                                 └─ portfolio-postgres
+```
 
 ```bash
-# Sunucuda, bir kez
+docker network create edge            # bir kez
+
 cp .env.example .env                  # POSTGRES_PASSWORD, PUBLIC_ORIGIN
 cp backend/.env.example backend/.env  # JWT sırları, ADMIN_*
-docker compose -f docker-compose.prod.yml build
-EMAIL="siz@ornek.com" ./nginx/init-letsencrypt.sh
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d --build
 
 # Sonraki güncellemeler
 git pull && docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Production yığınında `postgres`, `api` ve `web` portları host'a açılmaz;
-dışarıya yalnızca Nginx (80/443) bakar. Secret'lar repoda değil, sunucudaki
+Tek origin olduğu için tarayıcı istekleri `/api/...` yoluna gider — CORS
+karmaşası yoktur. PostgreSQL hiçbir portu host'a açmaz; `api` ve `web` yalnızca
+Nginx'in bulunduğu ağdan erişilebilir. Secret'lar repoda değil, sunucudaki
 `.env` dosyalarında durur.
+
+Adım adım kurulum — ortak ağ, kesintisiz DNS geçişi, sertifika ve Nginx
+yapılandırması: **[DEPLOY.md](./DEPLOY.md)**
 
 ## Doğrulama durumu
 

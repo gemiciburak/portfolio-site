@@ -18,6 +18,8 @@ ARG API_URL
 ENV API_URL=$API_URL
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# next.config.js standalone çıktısını bu bayrağa göre açar.
+ENV DOCKER_BUILD=1
 RUN npm run build
 
 # ── runner ──────────────────────────────────────────────────────────────────

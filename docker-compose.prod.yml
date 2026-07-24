@@ -1,22 +1,21 @@
-# Production yığını — tek sunucu (ör. Google Cloud Compute Engine) +
-# Nginx ters proxy + Let's Encrypt HTTPS.
+# Production yığını — frontend + API + PostgreSQL, tek sunucuda (Google Cloud CE).
 #
-# Geliştirme docker-compose.yml'den farkları:
-#   • postgres, api ve web portları HOST'a AÇILMAZ; dışarıya yalnızca nginx bakar.
-#   • web imajı production URL'leriyle build edilir (NEXT_PUBLIC_* build anında gömülür).
-#   • TRUST_PROXY=1 — api bir ters proxy arkasında, gerçek istemci IP'si için.
+# Bu yığında nginx YOKTUR. 80/443'ü sunucudaki mevcut (Pierre'in) nginx'i tutar;
+# portfolyo ona `edge` adlı ortak Docker ağı üzerinden bağlanır ve
+# www.burakgemici.com.tr olarak yayınlanır. Ayrıntı: DEPLOY.md
 #
-# İLK kurulum:
-#   cp .env.example .env                 # sunucuda doldurun
-#   cp backend/.env.example backend/.env # JWT sırlarını üretin
-#   docker compose -f docker-compose.prod.yml build
-#   EMAIL="siz@ornek.com" ./nginx/init-letsencrypt.sh
-#   docker compose -f docker-compose.prod.yml up -d
+# Ön koşul — ortak ağ bir kez oluşturulur:
+#   docker network create edge
+#
+# Kurulum:
+#   cp .env.example .env                  # POSTGRES_* ve PUBLIC_ORIGIN
+#   cp backend/.env.example backend/.env  # JWT sırları, ADMIN_*
+#   docker compose -f docker-compose.prod.yml up -d --build
 #
 # Güncelleme:
 #   git pull && docker compose -f docker-compose.prod.yml up -d --build
 #
-# Secret'lar repoda DEĞİL, sunucuda oluşturulan .env dosyalarından gelir.
+# Secret'lar repoda DEĞİL, sunucudaki .env dosyalarında durur.
 
 name: portfolio
 
@@ -35,6 +34,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    # Yalnızca iç ağda; ne host'a ne edge'e açılır.
+    networks: [internal]
     volumes:
       - postgres_data:/var/lib/postgresql/data
     logging: *default-logging
@@ -45,6 +46,7 @@ services:
       retries: 10
       start_period: 10s
 
+  # Tek seferlik iş: şema güncel değilse uygular, sonra çıkar.
   migrate:
     build:
       context: ./backend
@@ -54,6 +56,7 @@ services:
     env_file: ./backend/.env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    networks: [internal]
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,9 +74,15 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
+      # Nginx arkasında: rate limit gerçek istemci IP'sini görsün.
       TRUST_PROXY: 1
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # Tek origin olduğu için tarayıcı istekleri zaten same-origin;
+      # allow-list yine de açıkça sınırlı tutulur.
       CORS_ORIGINS: ${PUBLIC_ORIGIN}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-0}
+    # internal: postgres'e erişim · edge: nginx'in erişimi
+    networks: [internal, edge]
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,51 +95,29 @@ services:
       context: ./frontend
       target: runner
       args:
-        # Tarayıcı API'ye aynı alan adı üzerinden, /api yolundan ulaşır.
-        NEXT_PUBLIC_API_URL: ${PUBLIC_ORIGIN}/api
-        API_URL: http://api:4000/api
+        # Tarayıcı isteği aynı origin'e gider — alan adı imaja gömülmez.
+        NEXT_PUBLIC_API_URL: /api
+        # Sunucu tarafı render konteyner ağı üzerinden, doğrudan API'ye.
+        API_URL: http://portfolio-api:4000/api
     image: portfolio-web:latest
     container_name: portfolio-web
     restart: unless-stopped
     environment:
-      API_URL: http://api:4000/api
+      API_URL: http://portfolio-api:4000/api
+    networks: [internal, edge]
     depends_on:
       api:
         condition: service_healthy
     logging: *default-logging
 
-  nginx:
-    image: nginx:1.27-alpine
-    container_name: portfolio-nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - certbot_conf:/etc/letsencrypt:ro
-      - certbot_www:/var/www/certbot:ro
-    depends_on:
-      - web
-      - api
-    logging: *default-logging
-    # Sertifika yenilendiğinde konfigürasyonu yeniden yükler.
-    command: >
-      sh -c "while :; do sleep 6h & wait $${!}; nginx -s reload; done & nginx -g 'daemon off;'"
-
-  certbot:
-    image: certbot/certbot:latest
-    container_name: portfolio-certbot
-    restart: unless-stopped
-    volumes:
-      - certbot_conf:/etc/letsencrypt
-      - certbot_www:/var/www/certbot
-    logging: *default-logging
-    # 12 saatte bir yenileme dener; süresi dolmamışsa hiçbir şey yapmaz.
-    entrypoint: >
-      sh -c "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot; sleep 12h & wait $${!}; done"
+networks:
+  # Projeye özel iç ağ (postgres burada izole).
+  internal:
+    driver: bridge
+  # Nginx ile buluşma noktası — `docker network create edge` ile önceden var olmalı.
+  edge:
+    external: true
+    name: edge
 
 volumes:
   postgres_data:
-  certbot_conf:
-  certbot_www:
