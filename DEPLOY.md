@@ -20,17 +20,6 @@ VPS
 Tek origin olduğu için **CORS sorunu yoktur**: tarayıcı isteği `/api/...`
 yoluna, sitenin kendi alan adına gider.
 
-> **Sıralama önemli.** Aşağıdaki akış, alan adı hâlâ Vercel'i gösterirken her
-> şeyi kurup doğrular; DNS en son çevrilir. Doğru uygulanırsa **kesinti olmaz**.
-
----
-
-## 0. Hazırlık — TTL'i düşür
-
-Geçişten en az birkaç saat önce, DNS sağlayıcında `burakgemici.com.tr` ve
-`www` kayıtlarının **TTL**'ini `300` saniyeye indir. Geri dönmen gerekirse
-hızlı olur.
-
 ---
 
 ## 1. Ortak ağı oluştur ve nginx'i bağla
@@ -70,7 +59,27 @@ curl -sI https://pierre.burakgemici.com.tr | head -1   # HTTP/2 200 bekleniyor
 
 ---
 
-## 2. Portfolyo yığınını başlat
+## 2. DNS'i VPS'e çevir
+
+DNS sağlayıcında:
+
+| Kayıt | Değer |
+|-------|-------|
+| `www` | **A → 34.107.6.189** |
+| `@` (apex) | **A → 34.107.6.189** |
+
+Varsa Vercel'e ait `CNAME` / `A` kayıtlarını sil.
+
+```bash
+watch -n5 'dig +short www.burakgemici.com.tr'
+```
+
+> Sertifikayı HTTP-01 ile alacağımız için DNS'in **önce** yayılması gerekir.
+> (Kesintisiz geçiş varyantı için en alttaki nota bak.)
+
+---
+
+## 3. Portfolyo yığınını başlat
 
 ```bash
 git clone https://github.com/gemiciburak/portfolio-site.git ~/portfolio
@@ -106,7 +115,8 @@ Başlat:
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Başlangıç içeriğini bir kez yükle:
+**Seed'i çalıştır — bu adım zorunlu.** Profil satırı olmadan ana sayfa
+render edilemez ve `/` ucu 500 döner:
 
 ```bash
 docker compose -f docker-compose.prod.yml run --rm -w /app migrate \
@@ -116,150 +126,76 @@ docker compose -f docker-compose.prod.yml run --rm -w /app migrate \
 Konteyner ağı üzerinden doğrula:
 
 ```bash
-docker compose -f docker-compose.prod.yml exec api \
-  node -e "fetch('http://127.0.0.1:4000/api/health').then(r=>r.json()).then(d=>console.log(d.data))"
+docker run --rm --network edge curlimages/curl -s http://portfolio-api:4000/api/health
+docker run --rm --network edge curlimages/curl -s -o /dev/null -w "%{http_code}\n" http://portfolio-web:3000/
 ```
+
+İkisi de sırasıyla `"status":"ok"` ve `200` vermeli.
 
 ---
 
-## 3. Sertifikayı DNS-01 ile al (alan adı hâlâ Vercel'deyken)
+## 4. Sertifikayı al
 
-HTTP-01 challenge alan adının sunucuyu göstermesini şart koşar — bu yüzden
-**DNS-01** kullanıyoruz. Böylece sertifika, trafik hâlâ Vercel'e giderken hazır olur.
+Nginx, sertifika dosyası yokken SSL bloğu içeren konfigürasyonu kabul etmez;
+sertifika almak içinse nginx'in ACME doğrulamasını servis etmesi gerekir. Bu
+yüzden önce **geçici** HTTP-only blok kurulur.
 
 ```bash
-cd ~/pierre
+scp ~/portfolio/nginx/portfolio-bootstrap.conf \
+    sunucu:~/pierre/nginx/conf.d/portfolio.conf
 
+cd ~/pierre
+docker compose -f docker-compose.prod.yml exec nginx nginx -t
+docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+```
+
+> `nginx -t` başarısızsa **reload etme.** Çalışan nginx eski konfigürasyonla
+> ayakta kalır ve Pierre etkilenmez.
+
+Sertifikayı webroot (HTTP-01) ile al — bu yöntem **kendiliğinden yenilenir**:
+
+```bash
 docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot \
-  certonly --manual --preferred-challenges dns \
+  certonly --webroot -w /var/www/certbot \
   -d www.burakgemici.com.tr -d burakgemici.com.tr \
   --email <e-postan> --agree-tos --no-eff-email
 ```
 
-Certbot duracak ve DNS'e **TXT kaydı** eklemeni isteyecek:
-
-```
-_acme-challenge.www.burakgemici.com.tr   TXT   "…"
-_acme-challenge.burakgemici.com.tr       TXT   "…"
-```
-
-Kaydı ekle, yayıldığını **başka bir terminalde** doğrula, sonra Enter'a bas:
-
-```bash
-dig +short TXT _acme-challenge.www.burakgemici.com.tr
-```
-
-> İki alan adı için ayrı ayrı TXT istenir; certbot ilkini sorup Enter'ı
-> bekledikten sonra ikincisini ister. Acele edip erken Enter'lama.
-
 ---
 
-## 4. Nginx server bloğunu ekle
+## 5. Asıl konfigürasyonu koy
 
 ```bash
 scp ~/portfolio/nginx/portfolio.conf sunucu:~/pierre/nginx/conf.d/portfolio.conf
-```
 
-Önce **söz dizimini denetle**, ancak sonra yeniden yükle:
-
-```bash
 cd ~/pierre
 docker compose -f docker-compose.prod.yml exec nginx nginx -t
-```
-
-> `nginx -t` başarısızsa **reload etme**. Çalışan nginx eski konfigürasyonla
-> ayakta kalır ve Pierre etkilenmez. Hatayı düzeltip tekrar dene.
-
-Test geçtiyse:
-
-```bash
 docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
 ```
 
 ---
 
-## 5. DNS'i çevirmeden ÖNCE doğrula
-
-`--resolve` ile isteği zorla VPS'e yönlendir — gerçek alan adı, gerçek
-sertifika, gerçek yığın; ama DNS hâlâ Vercel'i gösteriyor:
+## 6. Doğrula
 
 ```bash
-IP=34.107.6.189
-
-# Sertifika doğru mu (zincir + alan adı)
-curl -sI --resolve www.burakgemici.com.tr:443:$IP \
-  https://www.burakgemici.com.tr | head -1
-
-# API ayakta mı
-curl -s --resolve www.burakgemici.com.tr:443:$IP \
-  https://www.burakgemici.com.tr/api/health
-
-# Sayfa içerik ile geliyor mu (SSR API'ye ulaşıyor mu)
-curl -s --resolve www.burakgemici.com.tr:443:$IP \
-  https://www.burakgemici.com.tr | grep -o "<title>[^<]*</title>"
-
-# Pierre bozulmamış mı
-curl -sI https://pierre.burakgemici.com.tr | head -1
-```
-
-Dördü de beklendiği gibiyse geçişe hazırsın. Değilse **DNS'e dokunma** —
-kullanıcılar hâlâ Vercel'deki çalışan siteyi görüyor.
-
----
-
-## 6. DNS'i çevir
-
-DNS sağlayıcında:
-
-| Kayıt | Eski | Yeni |
-|-------|------|------|
-| `www` | Vercel (CNAME/A) | **A → 34.107.6.189** |
-| `@` (apex) | Vercel (76.76.21.21) | **A → 34.107.6.189** |
-
-Varsa Vercel'in `CNAME` kaydını sil. Yayılmayı izle:
-
-```bash
-watch -n5 'dig +short www.burakgemici.com.tr'
-```
-
----
-
-## 7. Sertifika yenilemesini otomatiğe çevir ⚠️
-
-**Bu adımı atlama.** 3. adımdaki `--manual` DNS-01 ile alınan sertifika
-**kendiliğinden yenilenemez** — 90 gün sonra site sertifika hatası verir.
-
-DNS yayıldıktan sonra, aynı sertifikayı webroot ile yeniden al; certbot
-yenileme yöntemini kalıcı olarak webroot'a çevirir:
-
-```bash
-cd ~/pierre
-docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot \
-  certonly --webroot -w /var/www/certbot --force-renewal \
-  -d www.burakgemici.com.tr -d burakgemici.com.tr
-
-docker compose -f docker-compose.prod.yml exec nginx nginx -s reload
+curl -sI https://www.burakgemici.com.tr | head -1
+curl -s  https://www.burakgemici.com.tr/api/health
+curl -s  https://www.burakgemici.com.tr | grep -o "<title>[^<]*</title>"
+curl -sI https://burakgemici.com.tr | grep -i location      # www'ye yönlenmeli
+curl -sI https://pierre.burakgemici.com.tr | head -1        # Pierre bozulmamış mı
 ```
 
 Otomatik yenilemenin çalışacağını kuru çalıştırmayla doğrula:
 
 ```bash
+cd ~/pierre
 docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot \
   renew --dry-run
 ```
 
 ---
 
-## 8. Vercel projesini kapat
-
-Alan adı artık VPS'i gösteriyor. Vercel'de:
-
-1. Project → Settings → Domains → `burakgemici.com.tr` ve `www`'yi kaldır
-2. Projeyi sil ya da Git bağlantısını kes (her push'ta boşuna build almasın)
-
----
-
-## 9. Kontrol listesi
+## 7. Kontrol listesi
 
 - [ ] `https://www.burakgemici.com.tr` açılıyor, içerik görünüyor
 - [ ] `https://burakgemici.com.tr` → `www`'ye yönleniyor
@@ -271,19 +207,31 @@ Alan adı artık VPS'i gösteriyor. Vercel'de:
 - [ ] `https://pierre.burakgemici.com.tr` hâlâ çalışıyor
 - [ ] `certbot renew --dry-run` başarılı
 - [ ] Seed'deki varsayılan admin parolası değiştirildi
-- [ ] Vercel projesi kapatıldı
-
----
-
-## Geri dönüş (rollback)
-
-Bir şeyler ters giderse: DNS'i Vercel'e geri al (TTL 300 olduğu için birkaç
-dakika). Vercel projesini 8. adımda silmediysen site anında geri döner —
-**bu yüzden 8. adımı diğerlerinden birkaç gün sonra yap.**
 
 ---
 
 ## Notlar
+
+### Kesintisiz geçiş (çalışan bir site taşınıyorsa)
+
+Yukarıdaki akış DNS'i önce çevirir; sertifika alınana dek kısa bir kesinti olur.
+Yayında **çalışan** bir siteyi taşıyorsan sırayı değiştir: sertifikayı DNS-01
+challenge ile, alan adı hâlâ eski yerini gösterirken al —
+
+```bash
+docker compose -f docker-compose.prod.yml run --rm --entrypoint certbot certbot \
+  certonly --manual --preferred-challenges dns \
+  -d www.burakgemici.com.tr -d burakgemici.com.tr \
+  --email <e-postan> --agree-tos --no-eff-email
+```
+
+Certbot `_acme-challenge.…` TXT kaydı isteyecek. Sertifika hazır olunca 5. adımı
+uygula, `curl --resolve www.burakgemici.com.tr:443:34.107.6.189 https://…` ile
+her şeyi DNS'e dokunmadan doğrula, sonra A kaydını çevir.
+
+> ⚠️ `--manual` DNS-01 ile alınan sertifika **otomatik yenilenemez.** Geçişten
+> sonra 4. adımdaki webroot komutunu `--force-renewal` ile bir kez çalıştırıp
+> yenileme yöntemini webroot'a çevir.
 
 ### Güncelleme
 
@@ -292,7 +240,9 @@ cd ~/portfolio && git pull
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-Şema değiştiyse `migrate` servisi açılışta otomatik uygular.
+Şema değiştiyse `migrate` servisi açılışta otomatik uygular. Seed'i tekrar
+çalıştırmak gerekmez (idempotent, ama içeriği seed-data.ts'e geri döndürür —
+admin panelinden yaptığın değişiklikler ezilir).
 
 ### İçerik güncelleme
 

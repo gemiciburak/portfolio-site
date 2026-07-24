@@ -118,27 +118,51 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # Yığının gerçekten ayağa kalktığını, migration'ın uygulandığını ve
-      # her iki /health ucunun da 200 döndüğünü uçtan uca doğrular.
+      # Yığının ayağa kalktığını, migration'ın ve seed'in uygulandığını ve
+      # sayfaların gerçek içerikle render edildiğini uçtan uca doğrular.
       - name: Smoke test the stack
         run: |
+          set -euo pipefail
+
           cp .env.example .env
           cp backend/.env.example backend/.env
           # Uygulama en az 32 karakterlik JWT sırrı bekliyor.
           sed -i "s|^JWT_ACCESS_SECRET=.*|JWT_ACCESS_SECRET=$(openssl rand -hex 32)|" backend/.env
           sed -i "s|^JWT_REFRESH_SECRET=.*|JWT_REFRESH_SECRET=$(openssl rand -hex 32)|" backend/.env
 
-          docker compose up -d --wait --wait-timeout 300 api web
+          # Önce API: migration'lar burada uygulanır.
+          docker compose up -d --wait --wait-timeout 300 api
 
+          # Seed ŞART: profil satırı olmadan ana sayfa render edilemez.
+          # Bu adım olmadan / ucu 500 döner (içerik yok).
+          docker compose run --rm -w /app migrate npx tsx src/core/database/seed.ts
+
+          # Frontend ancak içerik hazırken ayağa kaldırılır.
+          docker compose up -d --wait --wait-timeout 300 web
+
+          echo "── sağlık ──"
           curl --fail --silent --show-error http://localhost:4000/api/health \
             | tee /dev/stderr | grep -q '"status":"ok"'
           curl --fail --silent --show-error http://localhost:3000/api/health \
             | tee /dev/stderr | grep -q '"status":"ok"'
-          # Herkese açık uçlar gerçekten cevap veriyor mu.
+
+          echo "── herkese açık uçlar ──"
           curl --fail --silent --show-error http://localhost:4000/api/projects \
             | grep -q '"success":true'
-          # Frontend gerçekten sayfa render ediyor mu.
-          curl --fail --silent --show-error -o /dev/null http://localhost:3000/
+          # Seed gerçekten veri yazmış mı (boş dizi kabul edilmez).
+          curl --fail --silent --show-error http://localhost:4000/api/site \
+            | grep -q '"fullName"'
+
+          echo "── yetkilendirme ──"
+          # Korumalı uç token'sız erişilebiliyorsa bu bir güvenlik gerilemesidir.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/api/projects/all)" = "401"
+
+          echo "── frontend render ──"
+          # Sadece 200 yetmez: sayfa API'den gelen içeriği barındırmalı.
+          curl --fail --silent --show-error http://localhost:3000/ \
+            | grep -q "Full-Stack Developer"
+          # Detay sayfaları da API'den üretiliyor.
+          curl --fail --silent --show-error -o /dev/null http://localhost:3000/projects/pierre
 
       - name: Dump logs on failure
         if: failure()
