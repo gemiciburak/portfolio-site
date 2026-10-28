@@ -27,8 +27,10 @@ içinde; yanlış alan adı ya da eksik alan build'i düşürür.
 Proje detay sayfaları (`/projects/<slug>`) aynı listeden build anında üretilir.
 Listede olmayan slug 404 döner.
 
-İletişim formu bir sunucuya istek atmaz: ziyaretçinin e-posta uygulamasını
-alanlar doldurulmuş olarak açar (`mailto:`).
+İletişim formu [Web3Forms](https://web3forms.com) üzerinden gönderilir; mesajlar
+burakgemici.dev@gmail.com adresine düşer. Erişim anahtarı
+`sections/ContactSection.tsx` içinde ve herkese açık olacak şekilde tasarlanmış.
+Gizli `botcheck` alanı basit botları eler.
 
 ## Script'ler
 

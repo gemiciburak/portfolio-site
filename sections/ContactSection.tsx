@@ -35,6 +35,16 @@ const item = {
   show: { opacity: 1, y: 0 },
 };
 
+/**
+ * Web3Forms (web3forms.com): sunucusuz form servisi, mesajı doğrudan
+ * profildeki e-postaya iletir. Anahtar herkese açık olacak şekilde tasarlanmış;
+ * yalnızca bu forma gönderim yapmaya yarar, gizli değildir.
+ */
+const WEB3FORMS_ACCESS_KEY = "f0f6b9e3-56f0-4168-ae17-e814f89eef45";
+const WEB3FORMS_ENDPOINT = "https://api.web3forms.com/submit";
+
+type Status = "idle" | "submitting" | "success" | "error";
+
 /** Bağlantı metni: "https://" ve son eğik çizgi gösterilmez. */
 function displayUrl(url: string): string {
   return url.replace(/^https?:\/\//, "").replace(/\/$/, "");
@@ -45,8 +55,11 @@ export default function ContactSection({ profile }: { profile: Profile }) {
     name: "",
     email: "",
     message: "",
+    // Honeypot: gizli alan, yalnızca botlar doldurur. Web3Forms dolu gelen
+    // gönderimi sessizce reddeder.
+    botcheck: false,
   });
-  const [opened, setOpened] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
 
   const contacts = [
     {
@@ -74,20 +87,35 @@ export default function ContactSection({ profile }: { profile: Profile }) {
     icon: React.ReactNode;
   }[];
 
-  /**
-   * Sunucu yok: form, ziyaretçinin e-posta uygulamasını alanlar doldurulmuş
-   * olarak açar. Spam'e açık bir uç ve üçüncü parti servis gerektirmez.
-   */
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setStatus("submitting");
 
-    const subject = `Portfolio contact from ${formState.name}`;
-    const body = `${formState.message}\n\nFrom: ${formState.name} <${formState.email}>`;
+    // FormData "basit istek"tir, CORS preflight gerektirmez. JSON gövdeli
+    // isteğin preflight'ı Web3Forms önündeki Cloudflare'de takılabiliyor.
+    const body = new FormData();
+    body.append("access_key", WEB3FORMS_ACCESS_KEY);
+    body.append("subject", `Portfolio contact from ${formState.name}`);
+    body.append("from_name", "burakgemici.com.tr");
+    body.append("name", formState.name);
+    body.append("email", formState.email);
+    body.append("message", formState.message);
+    if (formState.botcheck) body.append("botcheck", "on");
 
-    window.location.href = `mailto:${profile.email}?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`;
-    setOpened(true);
+    try {
+      const response = await fetch(WEB3FORMS_ENDPOINT, { method: "POST", body });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload?.success) {
+        setStatus("error");
+        return;
+      }
+
+      setStatus("success");
+      setFormState({ name: "", email: "", message: "", botcheck: false });
+    } catch {
+      setStatus("error");
+    }
   };
 
   return (
@@ -205,23 +233,43 @@ export default function ContactSection({ profile }: { profile: Profile }) {
                 />
               </div>
 
+              <input
+                type="checkbox"
+                name="botcheck"
+                className="hidden"
+                tabIndex={-1}
+                autoComplete="off"
+                aria-hidden
+                checked={formState.botcheck}
+                onChange={(e) =>
+                  setFormState((s) => ({ ...s, botcheck: e.target.checked }))
+                }
+              />
+
               <button
                 type="submit"
-                className="w-full py-3 rounded-xl bg-accent-dark hover:bg-accent text-white font-medium transition-all hover:shadow-lg hover:shadow-accent/25"
+                disabled={status === "submitting"}
+                className="w-full py-3 rounded-xl bg-accent-dark hover:bg-accent text-white font-medium transition-all hover:shadow-lg hover:shadow-accent/25 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Send Message
+                {status === "submitting" ? "Sending..." : "Send Message"}
               </button>
 
-              {opened && (
-                <p role="status" className="text-sm text-center text-zinc-400">
-                  Your email app should open with the message ready to send. If it
-                  doesn&apos;t, write to{" "}
-                  <a href={`mailto:${profile.email}`} className="text-accent-light hover:underline">
-                    {profile.email}
-                  </a>
-                  .
-                </p>
-              )}
+              <p role="status" aria-live="polite" className="text-sm text-center">
+                {status === "success" && (
+                  <span className="text-emerald-400">
+                    Thanks, your message was sent. I&apos;ll get back to you soon.
+                  </span>
+                )}
+                {status === "error" && (
+                  <span className="text-red-400">
+                    The message couldn&apos;t be sent. Please try again or email me at{" "}
+                    <a href={`mailto:${profile.email}`} className="underline">
+                      {profile.email}
+                    </a>
+                    .
+                  </span>
+                )}
+              </p>
             </div>
           </motion.form>
         </div>
