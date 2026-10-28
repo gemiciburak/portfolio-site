@@ -33,7 +33,7 @@ export default function ProjectsSection({ projects }: { projects: Project[] }) {
             Featured <span className="gradient-text">Projects</span>
           </h2>
           <p className="text-zinc-400 text-sm font-mono uppercase tracking-widest">
-            What I&apos;ve built
+            Selected work
           </p>
         </motion.div>
 

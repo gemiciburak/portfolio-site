@@ -12,7 +12,7 @@ export const OG_IMAGE = {
   url: "/og-image.jpg",
   width: 1200,
   height: 630,
-  alt: "Burak Gemici — Full-Stack Developer",
+  alt: "Burak Gemici, Full-Stack Developer",
 };
 
 /**
@@ -21,24 +21,25 @@ export const OG_IMAGE = {
  * Buradaki her ifade doğrulanabilir bir kaynağa dayanır: CV, GitHub deposunun
  * kendisi ya da canlı dağıtım. Hiçbir deneyim, teknoloji veya proje özelliği
  * kaynağı olmadan eklenmemiştir.
+ *
+ * Yazım: kısa, düz cümleler. Uzun tire (—) kullanılmaz.
  */
 export const site: SiteContent = {
   profile: {
     fullName: "Burak Gemici",
     headline: "Full-Stack Developer",
     heroDescription:
-      "I build full-stack applications with TypeScript — scalable REST APIs and authentication " +
-      "on the backend, Next.js interfaces on the front, deployed with Docker and Nginx.",
+      "I'm a full-stack developer from Istanbul. I mostly work on the backend with NestJS and " +
+      "PostgreSQL, and build the frontend with Next.js.",
     aboutParagraphs: [
-      "I'm a full-stack developer working with TypeScript, NestJS, Next.js, and PostgreSQL. " +
-        "Most of my time goes into backend work: designing REST APIs, modelling relational data, " +
-        "and building authentication that holds up in production.",
-      "Most recently I was a Software Engineering Intern at Neon Apps (June–August 2026), where I " +
-        "built backend services with NestJS and PostgreSQL, implemented JWT authentication and " +
-        "role-based authorization, and shipped containerized services to a Linux server behind an " +
-        "Nginx reverse proxy with CI/CD automation via GitHub Actions.",
-      "I'm in my final year of B.Sc. Software Engineering at İstanbul Nişantaşı University. " +
-        "I care about clean architecture, predictable APIs, and code the next person can read.",
+      "I work mainly with TypeScript. Most of my time goes into the backend: REST APIs with " +
+        "NestJS, PostgreSQL databases and authentication. On the frontend I use Next.js and " +
+        "Tailwind CSS.",
+      "From June to August 2026 I was a software engineering intern at Neon Apps. I worked on " +
+        "backend services with NestJS and PostgreSQL, added JWT login and role-based permissions, " +
+        "and deployed services with Docker on a Linux server behind Nginx.",
+      "I'm a fourth-year Software Engineering student at İstanbul Nişantaşı University. Outside " +
+        "of school I build my own projects, from web apps to a mobile game.",
     ],
     aboutTags: ["TypeScript", "NestJS", "Next.js", "PostgreSQL", "Docker"],
     email: "burakgemici.dev@gmail.com",
@@ -49,14 +50,11 @@ export const site: SiteContent = {
     avatarUrl: "/profile.webp",
     metaTitle: "Burak Gemici | Full-Stack Developer",
     metaDescription:
-      "Full-stack developer building REST APIs and web applications with TypeScript, NestJS, " +
-      "Next.js, and PostgreSQL.",
+      "Burak Gemici is a full-stack developer in Istanbul working with TypeScript, NestJS, " +
+      "Next.js and PostgreSQL.",
   },
 
-  /**
-   * Dört kategori — arayüzdeki dört sütunluk ızgara ve geometrik simgeler korunur.
-   * Backend en başta: portfolyonun ağırlık merkezi orası.
-   */
+  /** Dört kategori: arayüzdeki dört sütunluk ızgara ve geometrik simgeler korunur. */
   skills: [
     {
       title: "Backend",
@@ -97,13 +95,13 @@ export const site: SiteContent = {
       endDate: "2026-08",
       description: null,
       highlights: [
-        "Built scalable backend services and RESTful APIs with NestJS, TypeScript, and PostgreSQL, following modular architecture principles.",
-        "Implemented JWT-based authentication and role-based authorization.",
-        "Integrated Redis caching and rate limiting to improve application performance.",
-        "Developed audit logging infrastructure using MongoDB.",
-        "Delivered real-time and asynchronous features with WebSockets, BullMQ, and background job processing.",
-        "Containerized services with Docker and Docker Compose, and deployed them to a Linux server with an Nginx reverse proxy, HTTPS, and CI/CD automation via GitHub Actions.",
-        "Collaborated through Git, code reviews, and backend architecture discussions.",
+        "Built REST APIs with NestJS, TypeScript and PostgreSQL.",
+        "Added JWT authentication and role-based authorization.",
+        "Used Redis for caching and rate limiting.",
+        "Set up audit logging with MongoDB.",
+        "Worked on real-time and background features with WebSockets and BullMQ.",
+        "Packaged services with Docker Compose and deployed them to a Linux server with Nginx, HTTPS and GitHub Actions.",
+        "Took part in code reviews and backend design discussions.",
       ],
     },
     {
@@ -121,9 +119,9 @@ export const site: SiteContent = {
 
   /**
    * Üç proje. Özellikler depoların kendisinden doğrulandı:
-   *   • pierre               → github.com/gemiciburak/restaurant-platform (README + ARCHITECTURE.md)
-   *   • portfolio-website    → bu depo
-   *   • express-product-api  → github.com/gemiciburak/express-product-api
+   *   • pierre             → github.com/gemiciburak/restaurant-platform (README + ARCHITECTURE.md)
+   *   • catch-me           → github.com/gemiciburak/pandas (gizli repo; README + docs/ARCHITECTURE.md)
+   *   • portfolio-website  → bu depo
    *
    * `imageUrl` null olduğunda arayüz degrade yer tutucuyu gösterir.
    */
@@ -132,14 +130,12 @@ export const site: SiteContent = {
       slug: "pierre",
       title: "Pierre",
       summary:
-        "Full-stack restaurant ordering platform — menu browsing, cart, checkout, and live order " +
-        "tracking, with an admin dashboard behind role-based access.",
+        "A restaurant ordering app. Customers browse the menu, place orders and follow them live, " +
+        "and staff manage everything from an admin panel.",
       description:
-        "Pierre is a food ordering platform built as a two-part application: a NestJS REST API and " +
-        "a Next.js App Router frontend. The backend follows a pragmatic clean architecture — every " +
-        "feature module runs Controller → Service → Repository, so business rules never build SQL " +
-        "and database rows never leave a module. Every response travels in a single envelope, and " +
-        "the Zod schemas that validate requests are the same objects that generate the Swagger docs.",
+        "Pierre has a NestJS API and a Next.js frontend. Each backend module is split into " +
+        "controller, service and repository layers, which keeps database code out of the business " +
+        "logic. Requests are validated with Zod, and the same schemas generate the Swagger docs.",
       techStack: [
         "NestJS",
         "TypeScript",
@@ -156,13 +152,13 @@ export const site: SiteContent = {
         "Nginx",
       ],
       highlights: [
-        "RESTful NestJS API with JWT authentication — access and rotating refresh tokens, reuse detection, and Argon2id password hashing.",
-        "Role-based authorization with globally applied guards; public routes are the explicit exception, not the default.",
-        "Relational data modelling with PostgreSQL and Drizzle ORM, with money stored as integer cents so floats never touch prices.",
-        "Redis for read-through caching, rate limiting, refresh-token storage, and JWT blacklisting.",
-        "Order lifecycle governed by a state machine, with domain events fanning out to BullMQ queues and Socket.IO clients.",
-        "Next.js frontend covering menu browsing, cart, checkout, order tracking, and an admin dashboard.",
-        "Containerized with Docker Compose and deployed behind Nginx with Let’s Encrypt HTTPS and GitHub Actions CI.",
+        "JWT login with access and refresh tokens. Refresh tokens rotate, reused tokens are detected, and passwords are hashed with Argon2id.",
+        "Role-based access control. Every route is protected unless it's marked as public.",
+        "PostgreSQL with Drizzle ORM. Prices are stored as whole cents to avoid rounding errors.",
+        "Redis for caching, rate limiting and token storage.",
+        "Orders move through a state machine. Status changes go to BullMQ queues and to clients over Socket.IO.",
+        "Next.js frontend with menu, cart, checkout, order tracking and an admin dashboard.",
+        "Runs on Docker Compose behind Nginx with Let's Encrypt, with CI on GitHub Actions.",
       ],
       imageUrl: null,
       githubUrl: "https://github.com/gemiciburak/restaurant-platform",
@@ -170,47 +166,49 @@ export const site: SiteContent = {
       liveUrl: null,
     },
     {
+      slug: "catch-me",
+      title: "Catch Me!",
+      summary:
+        "A panda reflex game for iOS, Android and the web, made with Unity and C#. Tap the real " +
+        "pandas before they hide and leave the decoys alone.",
+      description:
+        "Catch Me! is a mobile reflex game I built in Unity. Pandas pop up around a bamboo forest " +
+        "and you have to tap the real ones before they disappear, while ignoring the winking " +
+        "decoys. There are 50 levels in five difficulty tiers, a quick play mode and an endless " +
+        "mode. The game is in Turkish, works offline and has no ads or in-app purchases.",
+      techStack: ["Unity", "C#", "UI Toolkit", "NUnit", "WebGL", "Cloudflare Workers"],
+      highlights: [
+        "50 levels in five tiers, with a boss level every ten levels.",
+        "All game rules live in a C# library with no Unity dependency, so they can be tested on their own. It has 165 NUnit tests.",
+        "Gameplay doesn't depend on frame rate. The tests run it at everything from 15 to 240 fps.",
+        "Level difficulty was tuned against simulated players with different skill levels.",
+        "All 130 sprites are drawn as SVG in code, and the sound effects and music are generated in code too.",
+        "Save files are versioned and checksummed, with a backup copy in case one gets corrupted.",
+        "The web version runs as a PWA on Cloudflare Workers.",
+      ],
+      imageUrl: null,
+      // Repo gizli; GitHub linki verilmez.
+      githubUrl: null,
+      liveUrl: "https://pandas.mgbsoftware.com.tr",
+    },
+    {
       slug: "portfolio-website",
       title: "Portfolio Website",
-      summary:
-        "This site — a statically generated Next.js app with a dark glass interface and " +
-        "scroll-triggered motion, deployed on GitHub Pages.",
+      summary: "This website. A static Next.js site hosted on GitHub Pages.",
       description:
-        "A personal portfolio built with the Next.js App Router, TypeScript, and Tailwind CSS. All " +
-        "content — profile, skills, projects, and experience — lives in a single typed data file, " +
-        "and every page, including each project's detail page, is prerendered at build time. " +
-        "Pushing to main deploys the site to GitHub Pages.",
+        "My personal site, built with Next.js, TypeScript and Tailwind CSS. All the text lives in " +
+        "one data file and every page is generated at build time, so there's no server to run. " +
+        "Each push to main rebuilds the site and deploys it to GitHub Pages.",
       techStack: ["Next.js", "React", "TypeScript", "Tailwind CSS", "Framer Motion", "GitHub Actions"],
       highlights: [
-        "Modern, responsive dark interface with scroll-triggered motion, built with Next.js App Router and Tailwind CSS.",
-        "Content kept in one typed TypeScript module, so updating the site never means touching components.",
-        "Fully static output — project detail pages are generated at build time from the same data.",
-        "Search-ready by default: canonical URLs, Open Graph, sitemap, JSON-LD structured data, and an llms.txt summary.",
-        "Continuous deployment to GitHub Pages through GitHub Actions, gated on lint, type-check, and build.",
+        "Responsive dark design with scroll animations made with Framer Motion.",
+        "Project pages are generated from the same data file as the home page.",
+        "SEO setup with canonical URLs, Open Graph tags, a sitemap and JSON-LD structured data.",
+        "GitHub Actions runs linting, type checks and the build before every deploy.",
       ],
       imageUrl: null,
       githubUrl: "https://github.com/gemiciburak/portfolio-site",
       liveUrl: SITE_URL,
-    },
-    {
-      slug: "express-product-api",
-      title: "Express Product API",
-      summary:
-        "RESTful product management API built with Express and MongoDB, with full CRUD over " +
-        "modular routes.",
-      description:
-        "A focused CRUD API for managing products, written with Express and Mongoose. Routing is " +
-        "split into its own module and product data is modelled with a Mongoose schema, keeping " +
-        "the persistence layer separate from the HTTP layer.",
-      techStack: ["Node.js", "Express.js", "MongoDB", "Mongoose", "REST API"],
-      highlights: [
-        "Full CRUD operations built with Express and organized through modular routing.",
-        "Product data modelled with Mongoose schemas and persisted in MongoDB.",
-        "All endpoints (GET, POST, PUT, DELETE) tested with Postman and documented in the README.",
-      ],
-      imageUrl: null,
-      githubUrl: "https://github.com/gemiciburak/express-product-api",
-      liveUrl: null,
     },
   ],
 };

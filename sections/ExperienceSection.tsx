@@ -51,7 +51,7 @@ export default function ExperienceSection({
             Experience & <span className="gradient-text">Education</span>
           </h2>
           <p className="text-zinc-400 text-sm font-mono uppercase tracking-widest">
-            Where I&apos;ve been
+            Work and school
           </p>
         </motion.div>
 
@@ -87,7 +87,7 @@ export default function ExperienceSection({
                   </p>
                 </div>
                 <span className="px-3 py-1.5 rounded-lg glass text-xs font-mono text-zinc-300 whitespace-nowrap">
-                  {formatDate(experience.startDate)} —{" "}
+                  {formatDate(experience.startDate)} -{" "}
                   {formatDate(experience.endDate)}
                 </span>
               </div>

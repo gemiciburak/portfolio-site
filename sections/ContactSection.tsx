@@ -82,7 +82,7 @@ export default function ContactSection({ profile }: { profile: Profile }) {
     e.preventDefault();
 
     const subject = `Portfolio contact from ${formState.name}`;
-    const body = `${formState.message}\n\n— ${formState.name} <${formState.email}>`;
+    const body = `${formState.message}\n\nFrom: ${formState.name} <${formState.email}>`;
 
     window.location.href = `mailto:${profile.email}?subject=${encodeURIComponent(
       subject,
@@ -104,7 +104,7 @@ export default function ContactSection({ profile }: { profile: Profile }) {
             Get in <span className="gradient-text">Touch</span>
           </h2>
           <p className="text-zinc-400 text-sm font-mono uppercase tracking-widest">
-            Let&apos;s connect
+            Write to me
           </p>
         </motion.div>
 

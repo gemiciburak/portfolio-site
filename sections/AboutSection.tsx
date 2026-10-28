@@ -32,7 +32,7 @@ export default function AboutSection({ profile }: { profile: Profile }) {
             About <span className="gradient-text">Me</span>
           </h2>
           <p className="text-zinc-400 text-sm font-mono uppercase tracking-widest">
-            Get to know me
+            Background
           </p>
         </motion.div>
 

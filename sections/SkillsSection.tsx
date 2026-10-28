@@ -35,7 +35,7 @@ export default function SkillsSection({
             Skills & <span className="gradient-text">Tech</span>
           </h2>
           <p className="text-zinc-400 text-sm font-mono uppercase tracking-widest">
-            What I work with
+            Tools I use
           </p>
         </motion.div>
 

@@ -26,9 +26,9 @@ export function GET() {
     "## Experience",
     "",
     ...experiences.flatMap((experience) => [
-      `### ${experience.title} — ${experience.organization}`,
+      `### ${experience.title} at ${experience.organization}`,
       "",
-      `${experience.startDate} – ${experience.endDate ?? "present"}${experience.location ? ` · ${experience.location}` : ""}`,
+      `${experience.startDate} to ${experience.endDate ?? "present"}${experience.location ? ` · ${experience.location}` : ""}`,
       ...(experience.description ? ["", experience.description] : []),
       ...(experience.highlights.length > 0
         ? ["", ...experience.highlights.map((highlight) => `- ${highlight}`)]
