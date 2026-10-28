@@ -59,7 +59,7 @@ export default function ProjectsSection({ projects }: { projects: Project[] }) {
                 {project.imageUrl ? (
                   <Image
                     src={project.imageUrl}
-                    alt={project.title}
+                    alt={`Screenshot of ${project.title}`}
                     fill
                     className="object-cover"
                     sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"

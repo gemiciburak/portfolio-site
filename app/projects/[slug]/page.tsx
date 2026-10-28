@@ -121,7 +121,7 @@ export default async function ProjectDetailPage({ params }: PageProps) {
           {project.imageUrl ? (
             <Image
               src={project.imageUrl}
-              alt={project.title}
+              alt={`Screenshot of ${project.title}`}
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 896px"

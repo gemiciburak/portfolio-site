@@ -123,7 +123,8 @@ export const site: SiteContent = {
    *   • catch-me           → github.com/gemiciburak/pandas (gizli repo; README + docs/ARCHITECTURE.md)
    *   • portfolio-website  → bu depo
    *
-   * `imageUrl` null olduğunda arayüz degrade yer tutucuyu gösterir.
+   * Görseller public/projects/ altında, 1440×810 (16:9) WebP ekran görüntüleri.
+   * `imageUrl` null olursa arayüz degrade yer tutucuyu gösterir.
    */
   projects: [
     {
@@ -160,7 +161,7 @@ export const site: SiteContent = {
         "Next.js frontend with menu, cart, checkout, order tracking and an admin dashboard.",
         "Runs on Docker Compose behind Nginx with Let's Encrypt, with CI on GitHub Actions.",
       ],
-      imageUrl: null,
+      imageUrl: "/projects/pierre.webp",
       githubUrl: "https://github.com/gemiciburak/restaurant-platform",
       // Barındığı VM kapandı; yeniden yayına alınınca adres buraya eklenir.
       liveUrl: null,
@@ -186,7 +187,7 @@ export const site: SiteContent = {
         "Save files are versioned and checksummed, with a backup copy in case one gets corrupted.",
         "The web version runs as a PWA on Cloudflare Workers.",
       ],
-      imageUrl: null,
+      imageUrl: "/projects/catch-me.webp",
       // Repo gizli; GitHub linki verilmez.
       githubUrl: null,
       liveUrl: "https://pandas.mgbsoftware.com.tr",
@@ -206,7 +207,7 @@ export const site: SiteContent = {
         "SEO setup with canonical URLs, Open Graph tags, a sitemap and JSON-LD structured data.",
         "GitHub Actions runs linting, type checks and the build before every deploy.",
       ],
-      imageUrl: null,
+      imageUrl: "/projects/portfolio-website.webp",
       githubUrl: "https://github.com/gemiciburak/portfolio-site",
       liveUrl: SITE_URL,
     },
