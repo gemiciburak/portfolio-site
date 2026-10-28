@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0a0f;
+  --foreground: #fafafa;
+  --accent: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.4);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/*
+ * Kartlarda backdrop-filter yok: arkalarında düz zemin var, bulanıklık görünmüyor
+ * ama her kart ayrı bir GPU katmanı olup kaydırmayı yavaşlatıyordu.
+ */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Yalnızca içeriğin üzerinde kayan yüzeyler (navbar) gerçekten bulanıklaştırır. */
+.glass-blur {
+  background: rgba(10, 10, 15, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/*
+ * Hero giriş animasyonu CSS'te: metin JS yüklenmesini beklemeden görünür
+ * (LCP), animasyon da ana thread'i meşgul etmez.
+ */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease-out both;
+}
+
+/*
+ * Büyük hero metinleri (LCP adayları) yalnızca kayar: opacity 0'dan başlayan
+ * eleman Chrome'da animasyon bitene kadar LCP sayılmaz.
+ */
+@keyframes rise {
+  from {
+    transform: translateY(20px);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.6s ease-out both;
+}
+
+/* Hero'daki dekoratif rozetler: yalnızca transform, compositor'da çalışır. */
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(var(--drift-x), var(--drift-y));
+  }
+}
+
+.animate-drift {
+  animation: drift var(--drift-duration) ease-in-out infinite;
+}
+
+/* Simge metin değil süs: ::before içeriği kontrast denetimine girmez. */
+.badge-icon::before {
+  content: attr(data-icon);
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-nudge {
+  animation: nudge 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

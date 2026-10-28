@@ -12,7 +12,6 @@ dist/
 .env
 .env.*
 !.env.example
-frontend/.env.local
 
 # logs
 *.log
